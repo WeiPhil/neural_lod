@@ -1,0 +1,4 @@
+# Hashes of file build rules.
+25b6b2ef53d495d9cfd18667e92394e0 CMakeFiles/build_blender_addon
+b37745e8e113704cc22b50967eadeabc CMakeFiles/install_blender_addon
+2ac3972078b205228fe523712a657c13 blender_vkr.zip

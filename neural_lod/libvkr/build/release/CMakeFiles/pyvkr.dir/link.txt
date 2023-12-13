@@ -1,0 +1,1 @@
+/usr/bin/clang-9 -fPIC -O2 -g -DNDEBUG -shared  -o pyvkr.so CMakeFiles/pyvkr.dir/src/vkrmodule.c.o  libvkr.a 

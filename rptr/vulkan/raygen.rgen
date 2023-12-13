@@ -1,0 +1,730 @@
+// Copyright 2023 Intel Corporation.
+// SPDX-License-Identifier: MIT
+
+#version 460
+#extension GL_GOOGLE_include_directive : require
+
+#extension GL_EXT_ray_tracing : require
+
+#include "language.glsl"
+#include "gpu_params.glsl"
+
+// Available test feature flags:
+// #define SOBOL_NO_SCRAMBLE
+// #define Z_ORDER_SHUFFLING
+#define ENABLE_RAYQUERIES
+
+// Not supported for now:
+#undef ENABLE_AOV_BUFFERS
+
+#include "pathspace.h"
+
+#define MAKE_RANDOM_TABLE(TYPE, NAME) \
+layout(binding = RANDOM_NUMBERS_BIND_POINT, set = 0, std430) buffer RNBuf {\
+    TYPE NAME;\
+};
+#include "pointsets/selected_rng.glsl"
+
+#include "setup_iterative_pt.glsl"
+#include "bsdfs/hit_point.glsl"
+
+#include "rt/materials.glsl"
+#include "bsdfs/gltf_bsdf.glsl"
+
+#include "lights/tri.glsl"
+
+layout(binding = SCENE_BIND_POINT, set = 0) uniform accelerationStructureEXT scene;
+
+layout(binding = FRAMEBUFFER_BIND_POINT, set = 0, rgba8) uniform writeonly image2D framebuffer;
+#include "accumulate.glsl"
+
+layout(binding = VIEW_PARAMS_BIND_POINT, set = 0, std140) uniform VPBuf {
+    LOCAL_CONSTANT_PARAMETERS
+};
+layout(binding = SCENE_PARAMS_BIND_POINT, set = 0, std140) uniform GPBuf {
+    GLOBAL_CONSTANT_PARAMETERS
+};
+
+layout(binding = MATERIALS_BIND_POINT, set = 0, scalar) buffer MaterialParamsBuffer {
+    MATERIAL_PARAMS material_params[];
+};
+
+layout(binding = LIGHTS_BIND_POINT, set = 0, std430) buffer LightParamsBuffer {
+    TriLightData global_lights[];
+};
+
+#ifdef ENABLE_RAYQUERIES
+layout(binding = RAYQUERIES_BIND_POINT, set = QUERY_BIND_SET, std430) buffer RayQueryBuf {
+    RenderRayQuery ray_queries[];
+};
+#endif
+#ifdef REPORT_RAY_STATS
+layout(binding = RAYSTATS_BIND_POINT, set = QUERY_BIND_SET, r16ui) uniform writeonly uimage2D ray_stats;
+#endif
+
+layout(binding = 0, set = TEXTURE_BIND_SET) uniform sampler2D textures[];
+#ifdef STANDARD_TEXTURE_BIND_SET
+layout(binding = 0, set = STANDARD_TEXTURE_BIND_SET) uniform sampler2D standard_textures[];
+#endif
+
+layout(location = PRIMARY_RAY) rayPayloadEXT RayPayload payload;
+layout(location = OCCLUSION_RAY) rayPayloadEXT int occlusion_hit;
+
+layout(shaderRecordEXT) buffer SBT {
+    uint32_t backend_variant_index;
+};
+
+layout(push_constant) uniform PushConstants {
+    PUSH_CONSTANT_PARAMETERS
+};
+
+// assemble light transport algorithm
+#define SCENE_GET_TEXTURE(tex_id) textures[nonuniformEXT(tex_id)]
+#define SCENE_GET_STANDARD_TEXTURE(tex_id) standard_textures[nonuniformEXT(tex_id)]
+
+#define SCENE_GET_LIGHT_SOURCE(light_id) decode_tri_light(global_lights[nonuniformEXT(light_id)])
+#define SCENE_GET_LIGHT_SOURCE_COUNT()   int(scene_params.light_sampling.light_count)
+
+#define BINNED_LIGHTS_BIN_SIZE int(view_params.light_sampling.bin_size)
+#define SCENE_GET_BINNED_LIGHTS_BIN_COUNT() (int(scene_params.light_sampling.light_count + (view_params.light_sampling.bin_size - 1)) / int(view_params.light_sampling.bin_size))
+
+#include "rt/material_textures.glsl"
+#include "mc/nee.glsl"
+
+#include "geometry.glsl"
+
+float geometry_scale = 0.0f;
+uint ray_count = 0;
+uint rayMask = 0xff;
+
+
+bool raytrace_test_visibility(const vec3 from, const vec3 dir, float dist) {
+  const uint32_t occlusion_flags = gl_RayFlagsTerminateOnFirstHitEXT
+      | gl_RayFlagsSkipClosestHitShaderEXT;
+
+    occlusion_hit = 1;
+    float epsilon = geometry_scale_to_tmin(from, geometry_scale);
+    if (dist - 2.f * epsilon > 0.0f) {
+        traceRayEXT(scene, occlusion_flags, rayMask,
+                PRIMARY_RAY, 1, OCCLUSION_RAY, from, epsilon, dir, dist - epsilon, OCCLUSION_RAY);
+#ifdef REPORT_RAY_STATS
+        ++ray_count;
+#endif
+    }
+    return occlusion_hit == 0;
+}
+
+void main_throughput_optimisation(uint sample_index, uint rnd_offset);
+void main_visibility_optimisation(uint sample_index, uint rnd_offset);
+void main_spp_pathtracer(uint sample_index, uint rnd_offset);
+void main() {
+    uint sample_batch_offset = accumulation_frame_offset >= 0 ? uint(accumulation_frame_offset) : view_params.frame_id;
+    uint sample_index = sample_batch_offset + gl_LaunchSizeEXT.z;
+#ifdef ENABLE_RAYQUERIES
+    // note: this forbids any warp-wide collaborative work
+    if (num_rayqueries > 0) {
+        uint query_id = gl_LaunchSizeEXT.x * gl_LaunchIDEXT.y + gl_LaunchIDEXT.x;
+        if (query_id >= uint(num_rayqueries))
+            return;
+
+        if (render_params.ray_query_method == 0) // Throughput Optimisation
+            main_throughput_optimisation(sample_index, view_params.frame_offset);
+        else if (render_params.ray_query_method == 1) // Visibility Optimisation
+            main_visibility_optimisation(sample_index, view_params.frame_offset);
+        return;
+    }
+#endif
+    if (num_rayqueries == 0)
+        main_spp_pathtracer(sample_index, view_params.frame_offset);
+}
+
+void main_spp_pathtracer(uint sample_index, uint rnd_offset) {
+    ivec2 pixel = ivec2(gl_LaunchIDEXT.xy);
+    const vec2 dims = view_params.frame_dims;
+ 
+    RANDOM_STATE rng = GET_RNG(sample_index, rnd_offset, uvec4(gl_LaunchIDEXT.xy, view_params.frame_dims.xy));
+
+    vec2 d = vec2(pixel.x + 0.5f, pixel.y + 0.5f);
+    if (render_params.enable_raster_taa == 0)
+        d += SAMPLE_PIXEL_FILTER(RANDOM_FLOAT2(rng, DIM_PIXEL_X));
+    d /= dims;
+    if (render_params.enable_raster_taa != 0)
+        d += 0.5f * view_params.screen_jitter;
+
+    vec3 ray_origin = view_params.cam_pos.xyz;
+    vec3 ray_dir = normalize(d.x * view_params.cam_du.xyz + d.y * view_params.cam_dv.xyz + view_params.cam_dir_top_left.xyz);
+    float t_min = 0;
+    float t_max = 1e20f;
+
+    if (render_params.aperture_radius > 0.0f) {
+        vec3 focus = ray_origin + render_params.focus_distance * ray_dir;
+        vec2 r2 = RANDOM_FLOAT2(rng, DIM_APERTURE_X);
+        //r2 = r2 * 2.0f - vec2(1.0f);
+        r2 = vec2(cos(2.0f * M_PI * r2.x), sin(2.0f * M_PI * r2.x)) * sqrt(r2.y);
+        r2 *= render_params.aperture_radius;
+        ray_origin += r2.x * normalize(view_params.cam_du.xyz);
+        ray_origin += r2.y * normalize(view_params.cam_dv.xyz);
+        ray_dir = normalize(focus - ray_origin);
+    }
+
+#ifdef ENABLE_RAYQUERIES
+    if (num_rayqueries > 0) {
+        uint query_id = gl_LaunchSizeEXT.x * gl_LaunchIDEXT.y + gl_LaunchIDEXT.x;
+        ray_origin = ray_queries[query_id].origin;
+        ray_dir = ray_queries[query_id].dir;
+        t_max = ray_queries[query_id].t_max;
+    }
+#endif
+
+    // update random state
+    RANDOM_SET_DIM(rng, DIM_CAMERA_END);
+    
+    float camera_footprint = 0.0f, transport_footprint = 0.0f;
+#ifdef TRANSPORT_NORMALFRAME
+    vec4 pathspace_frame = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+#endif
+#if defined(USE_MIPMAPPING) || defined(TRANSPORT_MIPMAPPING) || defined(TRANSPORT_ROUGHENING)
+    vec3 dpdx, dpdy;
+    float total_t = 0.0f;
+    {
+#else
+    {  
+        vec3 dpdx, dpdy;
+#endif
+        dpdx = view_params.cam_du.xyz / dims.x;
+        dpdy = view_params.cam_dv.xyz / dims.y;
+        // footprint for which we estimate and control the variance of averages
+        camera_footprint += (render_params.variance_radius * render_params.variance_radius) * length(cross(dpdx, dpdy));
+        // mipmapping/prefiltering footprint
+        dpdx *= render_params.pixel_radius;
+        dpdy *= render_params.pixel_radius;
+    }
+#ifdef TRANSPORT_RELIABILITY
+    float total_reliability = 0.0f;
+#endif
+
+    int bounce = 0, realBounce = 0;
+    vec3 illum = vec3(0.f);
+    vec3 path_throughput = vec3(1.f);
+    // data for emitter MIS
+    vec3 prev_wo = vec3(-ray_dir);
+    vec3 prev_n = ray_dir;
+    float prev_bsdf_pdf = 2.0e16f;
+
+
+    do {
+        const uint32_t occlusionFlags = 0;
+        traceRayEXT(scene, occlusionFlags, 0xff, PRIMARY_RAY, 1, PRIMARY_RAY,
+                ray_origin, t_min, ray_dir, t_max, PRIMARY_RAY);
+
+#ifdef REPORT_RAY_STATS
+        ++ray_count;
+#endif
+
+        if (bounce == 0 && render_params.aperture_radius > 0.0f) {
+            float acfp = render_params.aperture_radius * render_params.aperture_radius * M_PI;
+            float focus_g = render_params.focus_distance * render_params.focus_distance;
+            acfp /= focus_g;
+            float dof_dist = abs(payload.dist - render_params.focus_distance);
+            transport_footprint += acfp * (dof_dist * dof_dist / focus_g);
+        }
+
+        // If we hit nothing, include the scene background color from the miss shader
+        if (payload.dist < 0.f) {
+            if (render_params.output_channel != 0)
+                break;
+            illum += path_throughput * abs(payload.normal);
+            {
+                NEEQueryPoint query;
+                query.point = ray_origin;
+                query.normal = prev_n;
+                query.w_o = prev_wo;
+                query.info = NEEQueryInfo(0);
+#ifndef PT_DISABLE_NEE
+                float light_pdf = eval_direct_sun_light_pdf(query, ray_dir);
+                float w = nee_mis_heuristic(1.f, prev_bsdf_pdf, 1.f, light_pdf);
+#else
+                float w = 1.0f;
+#endif
+                illum += w * path_throughput * abs(payload.geo_normal);
+            }
+            break;
+        }
+
+
+        float approx_tri_solid_angle = length(payload.geo_normal);
+        payload.geo_normal /= approx_tri_solid_angle;
+        approx_tri_solid_angle *= abs(dot(payload.geo_normal, ray_dir)) / (payload.dist * payload.dist);
+
+#ifdef USE_MIPMAPPING
+        mat2 duvdxy;
+        {
+            total_t += payload.dist;
+            vec3 dir_tangent_un = ray_dir - payload.geo_normal * dot(ray_dir, payload.geo_normal);
+            float cosTheta2 = max(1.0f - dot(dir_tangent_un, dir_tangent_un), 0.0f);
+            vec3 dir_tangent_elong = dir_tangent_un / (sqrt(cosTheta2) + cosTheta2);
+            vec3 bitangent = payload.bitangent_l * cross(payload.geo_normal, normalize(payload.tangent));
+            // GLSL non-square matrix order seems broken
+            vec3 dpdx_ = dpdx + dir_tangent_elong * dot(dpdx, dir_tangent_un);
+            vec3 dpdy_ = dpdy + dir_tangent_elong * dot(dpdy, dir_tangent_un);
+#ifdef TRANSPORT_MIPMAPPING
+            dpdx_ = normalize(dpdx_) * sqrt(length2(dpdx_) + transport_footprint);
+            dpdy_ = normalize(dpdy_) * sqrt(length2(dpdy_) + transport_footprint);
+#endif
+            duvdxy = mat2x2(
+                    dot(payload.tangent, dpdx_), dot(bitangent, dpdx_),
+                    dot(payload.tangent, dpdy_), dot(bitangent, dpdy_)
+                ) * total_t;
+        }
+        geometry_scale = total_t;
+#else
+        mat2 duvdxy = mat2(0.0f);
+#endif
+
+        vec3 w_o = -ray_dir;
+        InteractionPoint interaction;
+        interaction.p = ray_origin + payload.dist * ray_dir;
+
+        MATERIAL_TYPE mat;
+        EmitterParams emit;
+        float material_alpha = unpack_material(mat, emit
+            , payload.material_id, material_params[nonuniformEXT(payload.material_id)]
+            , HitPoint(interaction.p, payload.uv, duvdxy, vec3(0.0)));
+        vec3 scatter_throughput = path_throughput;
+
+        // direct emitter hit
+        if (render_params.output_channel == 0 && emit.radiance != vec3(0.0f))
+        {
+#ifndef PT_DISABLE_NEE
+            float light_pdf;
+            if (view_params.light_sampling.light_mis_angle > 0.0f)
+                light_pdf = 1.0f / view_params.light_sampling.light_mis_angle;
+            else
+                light_pdf = wpdf_direct_tri_light(approx_tri_solid_angle);
+            float w = nee_mis_heuristic(1.f, prev_bsdf_pdf, 1.f, light_pdf);
+#else
+            float w = 1.0f;
+#endif
+            illum += w * scatter_throughput * emit.radiance;
+        }
+
+#ifdef TRANSPORT_ROUGHENING
+        {
+            float matAlpha = mat.roughness * mat.roughness;
+            float transportSpreadNrm = transport_footprint / (render_params.variance_radius * render_params.variance_radius); // + camera_footprint: do not include camera footprint for now, roughness was specified for direct visibility after all
+            float roughenedAlpha = min(sqrt(max(matAlpha * matAlpha, transportSpreadNrm / 2.0f * M_1_PI)), 1.0f);
+            mat.roughness = sqrt(roughenedAlpha);
+        }
+#endif
+
+        interaction.gn = payload.geo_normal;
+        interaction.n = payload.normal;
+        // For opaque objects (or in the future, thin ones) make the normal face forward
+        if ((mat.flags & BASE_MATERIAL_ONESIDED) == 0 && dot(w_o, interaction.gn) < 0.0) {
+            interaction.n = -interaction.n;
+            interaction.gn = -interaction.gn;
+        }
+
+        // apply normal mapping
+        int normal_map = material_params[nonuniformEXT(payload.material_id)].normal_map;
+        if (normal_map != -1) {
+            vec3 v_y = normalize( cross(payload.normal, payload.tangent) );
+            vec3 v_x = cross(v_y, payload.normal);
+            v_x *= length(payload.tangent);
+            v_y *= payload.bitangent_l;
+
+#ifdef USE_MIPMAPPING
+            // for now, reduce normal resolution with bounces (current representation not really filterable)
+            float normal_lod = float(bounce);
+#else
+            float normal_lod = 0.0f;
+#endif
+            vec3 map_nrm = textureLod(get_standard_texture_sampler(normal_map, payload.material_id, STANDARD_TEXTURE_NORMAL_SLOT), payload.uv, normal_lod).rgb;
+            map_nrm = vec3(2.0f, 2.0f, 1.0f) * map_nrm - vec3(1.0f, 1.0f, 0.0f);
+            // Z encoding might be unclear, just reconstruct
+            map_nrm.z = sqrt(max(1.0f - map_nrm.x * map_nrm.x - map_nrm.y * map_nrm.y, 0.0f));
+            mat3 iT_shframe = mat3(v_x, v_y, scene_params.normal_z_scale * interaction.n);
+            interaction.n = normalize(iT_shframe * map_nrm);
+        }
+
+        // fix incident directions under geo hemisphere
+        {
+            float nw = dot(w_o, interaction.n);
+            float gnw = dot(w_o, interaction.gn);
+            if (nw * gnw <= 0.0f) {
+                float blend = gnw / (gnw - nw);
+                interaction.n = normalize( mix(interaction.gn, interaction.n, blend - EPSILON) );
+            }
+        }
+        
+        interaction.v_y = normalize( cross(interaction.n, payload.tangent) );
+        interaction.v_x = cross(interaction.v_y, interaction.n);
+
+#ifndef PT_DISABLE_NEE
+        if (render_params.output_channel == 0 && bounce+1 < MAX_PATH_DEPTH) {
+
+            // first two dimensions light position selection, last light selection (sky/direct)
+            vec4 nee_rng_sample = vec4(RANDOM_FLOAT2(rng, DIM_POSITION_X), RANDOM_FLOAT2(rng, DIM_LIGHT_SEL_1));
+            NEEQueryAux nee_aux;
+            nee_aux.mis_pdf = view_params.light_sampling.light_mis_angle > 0.0f ? 1.0f / view_params.light_sampling.light_mis_angle : 0.0f;
+            illum += scatter_throughput * sample_direct_light(mat, interaction, w_o, nee_rng_sample.xy, nee_rng_sample.zw, nee_aux);
+
+        }
+#endif
+        RANDOM_SHIFT_DIM(rng, DIM_LIGHT_END);
+
+        if (render_params.output_channel != 0) {
+
+            float reliability = 1.0f;
+#ifdef TRANSPORT_RELIABILITY
+            reliability = camera_footprint / (camera_footprint + transport_footprint);
+            //total_reliability += reliability;
+            total_reliability = (1.0f - reliability) * total_reliability + reliability;
+#endif
+            illum *= 1.0f - reliability;
+            if (render_params.output_channel == 1)
+                illum += scatter_throughput * mat.base_color * reliability;
+            else if (render_params.output_channel == 2) {
+                vec3 pathspace_normal = interaction.n;
+#ifdef TRANSPORT_NORMALFRAME
+                pathspace_normal = quat_rot(pathspace_frame, pathspace_normal);
+                if (pathspace_frame.w < 0.0f) // reflection encoded in sign bit of w compoonent!
+                    pathspace_normal = -pathspace_normal;
+#endif
+                illum += pathspace_normal * reliability;
+            }
+            else if (render_params.output_channel == 3) {
+                illum += interaction.p * reliability;
+            }
+        }
+
+        {
+            vec3 w_i;
+            float sampling_pdf, mis_wpdf;
+            vec3 bsdf = sample_bsdf(mat, interaction, w_o, w_i, sampling_pdf, mis_wpdf
+                , RANDOM_FLOAT2(rng, DIM_DIRECTION_X), RANDOM_FLOAT2(rng, DIM_LOBE), rng);
+            RANDOM_SHIFT_DIM(rng, DIM_VERTEX_END);
+            // Must increment before the break statement below or the alpha channel
+            // will be accumulated incorrectly.
+            ++bounce;
+            if (mis_wpdf == 0.f || bsdf == vec3(0.f) || !(dot(w_i, interaction.n) * dot(w_i, interaction.gn) > 0.0f)) {
+                break;
+            }
+            path_throughput *= bsdf;
+            transport_footprint += 1.0f / sampling_pdf;
+
+#ifdef TRANSPORT_NORMALFRAME
+            float frame_sign = sign(pathspace_frame.w);
+            vec4 frame_change = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+#endif
+            if (dot(w_i, interaction.n) * dot(w_o, interaction.n) >= 0.0f) {
+#ifdef USE_MIPMAPPING
+            vec3 hr = normalize(w_i + w_o);
+            dpdx = reflect(dpdx, hr);
+            dpdy = reflect(dpdy, hr);
+#ifdef TRANSPORT_NORMALFRAME
+            // chain reflection transformations for path-space gbuffer
+            // rotation:             q1 P q1'
+            // reflection:           q1 P q1      = -q1 P q1'
+            // double rotation:   q2 q1 P q1' q2' =  q2 q1 P (q2 q1)'
+            // double reflection: q2 q1 P q1  q2  =  q2 q1 P (-q1') (-q2') = q2 q1 P (q2 q1)'
+            // => flip sign bit on every reflection
+            frame_change = vec4(hr, 0.0f);
+            frame_sign = -frame_sign;
+#endif
+#endif
+            } else {
+                float cosRefractionAngle = -dot(w_i, w_o);
+                vec3 refractionOrtho = cross(w_i, w_o); // order matters!
+                float cosHalfAngle = sqrt(0.5f + 0.5f * cosRefractionAngle);
+                float sinToSinHalf = 0.5f / cosHalfAngle; // sin theta = 2 * sin(theta/2) * cos(theta/2)
+                vec4 refractionRot = vec4(refractionOrtho * sinToSinHalf, cosHalfAngle);
+#ifdef TRANSPORT_NORMALFRAME
+                frame_change = refractionRot;
+                //illum = 10.0f * (quat_rot(frame_change, -w_o) - w_i);
+                //break;
+#endif
+            }
+#ifdef TRANSPORT_NORMALFRAME
+            pathspace_frame = quat_mul(pathspace_frame, frame_change);
+            pathspace_frame = quat_copysign(pathspace_frame, frame_sign);
+#endif
+
+            prev_wo = w_o;
+            prev_bsdf_pdf = mis_wpdf;
+            prev_n = interaction.n;
+
+            ray_dir = w_i;
+        }
+        ray_origin = interaction.p;
+        t_min = geometry_scale_to_tmin(ray_origin, total_t);
+        t_max = 1e20f;
+        ++realBounce;
+
+        // Russian roulette termination
+        if (bounce >= render_params.rr_path_depth) {
+            float prefix_weight = max(path_throughput.x, max(path_throughput.y, path_throughput.z));
+
+            float rr_prob = prefix_weight;
+            if (bounce > 6)
+                rr_prob = min(0.95f, rr_prob); // todo: good?
+            else
+                rr_prob = min(1.0f, rr_prob);
+
+            float rr_sample = RANDOM_FLOAT1(rng, DIM_RR);
+
+            if (rr_sample < rr_prob)
+                path_throughput /= rr_prob;
+            else
+                break;
+        }
+
+        RANDOM_SET_DIM(rng, DIM_CAMERA_END + realBounce * (DIM_VERTEX_END + DIM_LIGHT_END));
+    } while (bounce < render_params.max_path_depth);
+
+    if (render_params.output_channel != 0 && total_reliability > 0.0f) {
+        //illum /= total_reliability;
+    }
+
+    
+    vec4 final_color = vec4(illum, bounce == 0 ? 0.0f : 1.0f);
+#ifdef ENABLE_RAYQUERIES
+    if (num_rayqueries > 0) {
+        uint query_id = gl_LaunchSizeEXT.x * gl_LaunchIDEXT.y + gl_LaunchIDEXT.x;
+        accumulate_query(query_id, final_color, sample_index);
+        return;
+    }
+#endif
+    accumulate(pixel, final_color, sample_index, (accumulation_flags & ACCUMULATION_FLAGS_ATOMIC) != 0);
+
+#ifdef REPORT_RAY_STATS
+    imageStore(ray_stats, pixel, uvec4(ray_count));
+#endif
+}
+
+void main_throughput_optimisation(uint sample_index, uint rnd_offset) {
+    
+    // Ray queries always active
+    #ifndef ENABLE_RAYQUERIES
+        return;
+    #endif
+
+    uint query_id = gl_LaunchSizeEXT.x * gl_LaunchIDEXT.y + gl_LaunchIDEXT.x;
+
+    RANDOM_STATE rng = GET_RNG(sample_index, rnd_offset, query_id);
+ 
+    int max_throughput_depth = ray_queries[query_id].mode_or_data;
+
+    vec3 ray_origin = ray_queries[query_id].origin;
+
+    vec3 voxel_center = ray_queries[query_id].voxel_center;
+    float voxel_extent = ray_queries[query_id].voxel_extent;
+
+    vec3 ray_dir = ray_queries[query_id].dir;
+
+    float t_min = 0.f;
+    float t_max = ray_queries[query_id].t_max;
+
+	int bounce = 0;
+    int max_bounces = max_throughput_depth - 1;
+    
+    vec3 accumulated_throughput = vec3(0.f);
+    vec3 path_throughput = vec3(1.f);
+
+    int valid_contribution = 1;
+
+    vec3 sampled_wi;
+       
+    // generate random wi for which to evaluate throughput 
+    sampled_wi = square_to_uniform_sphere(RANDOM_FLOAT2(rng,-1));
+    // sampled_wi = square_to_hg(RANDOM_FLOAT2(rng,-1),-ray_dir,0.2);
+
+    do {
+        // Always tracing against base scene
+        traceRayEXT(scene, gl_RayFlagsOpaqueEXT, 0xff, PRIMARY_RAY, 1, PRIMARY_RAY,
+                ray_origin, t_min, ray_dir, t_max, PRIMARY_RAY);
+
+        vec3 w_o = -ray_dir;
+        InteractionPoint interaction;
+        interaction.p = ray_origin + payload.dist * ray_dir;
+
+        // If we hit nothing or we land outside the voxel's bounding sphere, break out and report the current throughput.
+        if (payload.dist < 0.f || any(greaterThan(abs(interaction.p - voxel_center), vec3(voxel_extent * 0.5f))) ) {
+            if(bounce == 0){
+                // If we didn't bounce yet, we exit and report no valid contribution (we missed the geo)
+                valid_contribution = 0;
+            }
+            break;
+        }
+
+        payload.geo_normal /= length(payload.geo_normal);
+
+        mat2 duvdxy = mat2(0.0f);
+
+        MATERIAL_TYPE mat;
+        EmitterParams emit;
+        float material_alpha =
+            unpack_material(mat,
+                            emit,
+                            payload.material_id,
+                            material_params[nonuniformEXT(payload.material_id)],
+                            HitPoint(interaction.p, payload.uv, duvdxy, vec3(0.0)));
+
+        // Account for transparency ?
+
+		interaction.gn = payload.geo_normal;
+		interaction.n = payload.normal;
+		// For opaque objects (or in the future, thin ones) make the normal face forward
+		if ((mat.flags & BASE_MATERIAL_ONESIDED) == 0 && dot(w_o, interaction.gn) < 0.0) {
+			interaction.n = -interaction.n;
+			interaction.gn = -interaction.gn;
+		}
+
+        // apply normal mapping
+        int normal_map = material_params[nonuniformEXT(payload.material_id)].normal_map;
+        if (normal_map != -1) {
+            vec3 v_y = normalize( cross(payload.normal, payload.tangent) );
+            vec3 v_x = cross(v_y, payload.normal);
+            v_x *= length(payload.tangent);
+            v_y *= payload.bitangent_l;
+
+            vec3 map_nrm = texture(textures[nonuniformEXT(normal_map)], payload.uv).rgb;
+            map_nrm = vec3(2.0f, 2.0f, 1.0f) * map_nrm - vec3(1.0f, 1.0f, 0.0f);
+            // Z encoding might be unclear, just reconstruct
+            map_nrm.z = sqrt(max(1.0f - map_nrm.x * map_nrm.x - map_nrm.y * map_nrm.y, 0.0f));
+            mat3 iT_shframe = mat3(v_x, v_y, interaction.n);
+            interaction.n = normalize(iT_shframe * map_nrm);
+        }
+
+		// fix incident directions under geo hemisphere
+		{
+			float nw = dot(w_o, interaction.n);
+			float gnw = dot(w_o, interaction.gn);
+			if (nw * gnw <= 0.0f) {
+				float blend = gnw / (gnw - nw);
+				interaction.n = normalize( mix(interaction.gn, interaction.n, blend - EPSILON) );
+			}
+		}
+        
+		interaction.v_y = normalize( cross(interaction.n, payload.tangent) );
+		interaction.v_x = cross(interaction.v_y, interaction.n);
+
+        /***** Fixed dir NEE Sampling *****/
+        // Check if sampled_wi is occluded
+        ray_dir = sampled_wi;
+        ray_origin = interaction.p;
+        t_min = EPSILON * (1.f + length(ray_origin));
+        t_max = 1e20f;
+
+        traceRayEXT(scene, gl_RayFlagsOpaqueEXT, 0xff, PRIMARY_RAY, 1, PRIMARY_RAY,
+            ray_origin, t_min, ray_dir, t_max, PRIMARY_RAY);
+        
+        InteractionPoint nee_interaction;
+        nee_interaction.p = ray_origin + payload.dist * ray_dir;
+
+        // If nothing is hit or outside the cube we evaluate and add a contribution
+        if (payload.dist < 0.f || any(greaterThan(abs(nee_interaction.p - voxel_center), vec3(voxel_extent * 0.5f))) ) {
+
+            // Add a NEE contribution
+            // ensure consistent geometric and shading normals
+            if((dot(sampled_wi, interaction.n) * dot(sampled_wi, interaction.gn) > 0.0f)){
+                vec3 eval_bsdf = eval_bsdf(mat, interaction, w_o, sampled_wi);
+                if(eval_bsdf != vec3(0.f)){
+                    accumulated_throughput += path_throughput * eval_bsdf * abs(dot(sampled_wi, interaction.n));
+                }
+            }
+        }
+        
+        /***** Bsdf Sampling *****/
+        // Sample the next intersection
+        vec3 w_i;
+        float sampling_pdf, mis_pdf;
+        vec3 bsdf = sample_bsdf(mat, interaction, w_o, w_i, sampling_pdf, mis_pdf, RANDOM_FLOAT2(rng, DIM_DIRECTION_X), RANDOM_FLOAT2(rng, DIM_LOBE), rng);
+        RANDOM_SHIFT_DIM(rng, DIM_VERTEX_END);
+        if (sampling_pdf == 0.f || bsdf == vec3(0.f) || !(dot(w_i, interaction.n) * dot(w_i, interaction.gn) > 0.0f)) {
+            //invalid sampling or absorbed completely
+            break;
+        }
+
+        // Update the path throughput
+        path_throughput *= bsdf;
+        // debugPrintfEXT("path_throughput : %f %f %f\n",path_throughput.x,path_throughput.y,path_throughput.z);
+        
+        ++bounce;
+
+        ray_dir = w_i;
+		ray_origin = interaction.p;
+		t_min = EPSILON * (1.f + length(ray_origin));
+		t_max = 1e20f;
+
+        
+// #define ENABLE_RR
+#ifdef ENABLE_RR
+        // Russian roulette termination
+        if (bounce > 3) {
+            float prefix_weight = max(path_throughput.x, max(path_throughput.y, path_throughput.z));
+            prefix_weight = min(prefix_weight,1.0f);
+            float rr_prob = prefix_weight;
+            if (bounce > 6)
+                rr_prob = min(0.95f, rr_prob); // todo: good?
+
+            float rr_sample = RANDOM_FLOAT1(rng, -3); // todo: reusing next rand, not great
+
+            if (rr_sample < rr_prob){
+                path_throughput /= rr_prob;
+            }else{
+                break;
+            }
+        }
+#endif
+
+        RANDOM_SET_DIM(rng, DIM_CAMERA_END + bounce * (DIM_VERTEX_END + DIM_LIGHT_END));
+	} while (bounce < max_bounces);
+
+    ray_results[query_id].result.rgb = accumulated_throughput;
+    ray_results[query_id].wi = sampled_wi;
+    ray_results[query_id].occlusion_hit_or_pdf = valid_contribution;
+
+}
+
+void main_visibility_optimisation(uint sample_index, uint rnd_offset) {
+    
+    // Ray queries always active
+    #ifndef ENABLE_RAYQUERIES
+        return;
+    #endif
+
+    uint query_id = gl_LaunchSizeEXT.x * gl_LaunchIDEXT.y + gl_LaunchIDEXT.x;
+
+    RANDOM_STATE rng = GET_RNG(sample_index, rnd_offset, query_id);
+
+    vec3 ray_origin = ray_queries[query_id].origin;
+    vec3 voxel_center = ray_queries[query_id].voxel_center;
+    float voxel_extent = ray_queries[query_id].voxel_extent;
+    vec3 ray_dir = ray_queries[query_id].dir;
+
+    float t_min = 0.f;
+    float t_max = ray_queries[query_id].t_max;
+   
+    // Always tracing against base scene
+    traceRayEXT(scene, gl_RayFlagsOpaqueEXT, 0xff, PRIMARY_RAY, 1, PRIMARY_RAY,
+            ray_origin, t_min, ray_dir, t_max, PRIMARY_RAY);
+
+    InteractionPoint interaction;
+    interaction.p = ray_origin + payload.dist * ray_dir;
+
+    float max_dist = voxel_extent * 0.5f;
+
+    vec3 manhattan_dist = abs(interaction.p - voxel_center);
+
+    bool out_of_bound = any(greaterThan(manhattan_dist, vec3(max_dist)));
+    
+    float occlusion;
+    if (payload.dist < 0.f || out_of_bound) {
+        occlusion = 0.f;
+    } else {
+        occlusion = 1.f;
+    } 
+
+    ray_results[query_id].result.a = occlusion;
+}

@@ -1,0 +1,1 @@
+/usr/bin/clang-9 -O2 -g -DNDEBUG CMakeFiles/vktconvert.dir/src/vktconvert.c.o -o vktconvert  libvkr.a -lm 

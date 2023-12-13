@@ -1,0 +1,162 @@
+Script started on 2022-10-17 12:00:32+02:00 [TERM="xterm-256color" TTY="/dev/pts/3" COLUMNS="171" LINES="24"]
+(base) ]0;pweier@pweier-desk: ~/Documents/neural_lod/libvkr[01;32mpweier@pweier-desk[00m:[01;34m~/Documents/neural_lod/libvkr[00m$ cd scripts/
+(base) ]0;pweier@pweier-desk: ~/Documents/neural_lod/libvkr/scripts[01;32mpweier@pweier-desk[00m:[01;34m~/Documents/neural_lod/libvkr/scripts[00m$ ls
+[0m[01;32mconvert-transmission-texture.py[0m  operator_file_export_vkrs.py  [01;34m__pycache__[0m  README.md  [01;32mvkr2obj.py[0m  [01;32mvkrinfo.py[0m  [01;32mvktconvert.py[0m  [01;32mvktinfo.py[0m
+(base) ]0;pweier@pweier-desk: ~/Documents/neural_lod/libvkr/scripts[01;32mpweier@pweier-desk[00m:[01;34m~/Documents/neural_lod/libvkr/scripts[00m$ python3 vkr2obj.py 
+Traceback (most recent call last):
+  File "/home/pweier/Documents/neural_lod/libvkr/scripts/vkr2obj.py", line 6, in <module>
+    import pyvkr
+ModuleNotFoundError: No module named 'pyvkr'
+(base) ]0;pweier@pweier-desk: ~/Documents/neural_lod/libvkr/scripts[01;32mpweier@pweier-desk[00m:[01;34m~/Documents/neural_lod/libvkr/scripts[00m$ code .
+(base) ]0;pweier@pweier-desk: ~/Documents/neural_lod/libvkr/scripts[01;32mpweier@pweier-desk[00m:[01;34m~/Documents/neural_lod/libvkr/scripts[00m$ ./b[K[K
+./                          .scikit-learn-post-link.sh  
+(base) ]0;pweier@pweier-desk: ~/Documents/neural_lod/libvkr/scripts[01;32mpweier@pweier-desk[00m:[01;34m~/Documents/neural_lod/libvkr/scripts[00m$ .
+./                          .scikit-learn-post-link.sh  
+(base) ]0;pweier@pweier-desk: ~/Documents/neural_lod/libvkr/scripts[01;32mpweier@pweier-desk[00m:[01;34m~/Documents/neural_lod/libvkr/scripts[00m$ .[K~/bas[K[K[K.basr[Khrc[K[K[K[K[K[K[K[K[Knano ~/.bashrc 
+[?2004h[?1049h[22;0;0t[1;24r(B[m[4l[?7h[39;49m[?1h=[?1h=[?25l[39;49m(B[m[H[2J[22;79H(B[0;7m[ Reading... ](B[m[22;77H(B[0;7m[ Read 166 lines ](B[m[H(B[0;7m  GNU nano 4.8                                                               /home/pweier/.bashrc                                                                          [1;170H(B[m[23d(B[0;7m^G(B[m Get Help[18G(B[0;7m^O(B[m Write Out     (B[0;7m^W(B[m Where Is[52G(B[0;7m^K(B[m Cut Text[69G(B[0;7m^J(B[m Justify[86G(B[0;7m^C(B[m Cur Pos[103G(B[0;7mM-U(B[m Undo[23;120H(B[0;7mM-A(B[m Mark Text    (B[0;7mM-](B[m To Bracket   (B[0;7mM-Q(B[m Previous[24d(B[0;7m^X(B[m Exit[24;18H(B[0;7m^R(B[m Read File     (B[0;7m^\(B[m Replace[52G(B[0;7m^U(B[m Paste Text    (B[0;7m^T(B[m To Spell[86G(B[0;7m^_(B[m Go To Line    (B[0;7mM-E(B[m Redo[24;120H(B[0;7mM-6(B[m Copy Text    (B[0;7m^Q(B[m Where Was     (B[0;7mM-W(B[m Next[22d[2d[39;49m[36m# ~/.bashrc: executed by bash(1) for non-login shells.[3d# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)[4d# for examples[6d# If not running interactively, don't do anything[7d[32mcase[39m(B[m (B[0;1m[31m$-[39m(B[m [32min[8;5H[39m(B[m*i*[32m)[39m(B[m [32m;;[9;7H[39m(B[m*[32m)[39m(B[m [32mreturn;;[10desac[12d[36m# don't put duplicate lines or lines starting with space in the history.[13d# See bash(1) for more options[14d[39m(B[mHISTCONTROL[32m=[39m(B[mignoreboth[16d[36m# append to the history file, don't overwrite it[17d[39m(B[mshopt(B[0;1m[35m -s[39m(B[m histappend[19d[36m# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)[20d[39m(B[mHISTSIZE[32m=[39m(B[m1000[21dHISTFILESIZE[32m=[39m(B[m2000[2d[?12l[?25h[?25l[3d[?12l[?25h[?25l[4d[?12l[?25h[?25l[5d[?12l[?25h[?25l[6d[?12l[?25h[?25l[7d[?12l[?25h[?25l[8d[?12l[?25h[?25l[9d[?12l[?25h[?25l[10d[?12l[?25h[?25l[11d[?12l[?25h[?25l[12d[?12l[?25h[?25l[13d[?12l[?25h[?25l[14d[?12l[?25h[?25l[15d[?12l[?25h[?25l[16d[?12l[?25h[?25l[17d[?12l[?25h[?25l[18d[?12l[?25h[?25l[19d[?12l[?25h[?25l[20d[?12l[?25h[?25l[21d[?12l[?25h[?25l7[2;21r8
+[1;24r[21;1H[?12l[?25h[?25l7[2;21r8
+[1;24r[21;1H[36m# check the window size after each command and, if necessary,[39m(B[m[?12l[?25h[?25l7[2;21r8
+[1;24r[21;1H[36m# update the values of LINES and COLUMNS.[39m(B[m[?12l[?25h[?25l7[2;21r8
+[1;24r[21;1Hshopt(B[0;1m[35m -s[39m(B[m checkwinsize[?12l[?25h[?25l7[2;21r8
+[1;24r[21;1H[?12l[?25h[?25l7[2;21r8
+[1;24r[21;1H[36m# If set, the pattern (B[0;1m[33m"**"(B[0m[36m used in a pathname expansion context will[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# match all files and zero or more directories and subdirectories.[39m(B[m[K[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m#shopt -s globstar[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# make less more friendly for non-text input files, see lesspipe(1)[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32m[(B[0;1m[35m -x[39m(B[m /usr/bin/lesspipe [32m][39m(B[m [32m&&[39m(B[m [32meval[39m(B[m (B[0;1m[33m"$(SHELL=/bin/sh lesspipe)"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# set variable identifying the chroot you work in (used in the prompt below)[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mif[39m(B[m [32m[(B[0;1m[35m -z[39m(B[m (B[0;1m[33m"${debian_chroot:-}"[39m(B[m [32m][39m(B[m [32m&&[39m(B[m [32m[(B[0;1m[35m -r[39m(B[m /etc/debian_chroot [32m];[39m(B[m [32mthen[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5Hdebian_chroot[32m=$((B[0;1m[34mcat[39m(B[m /etc/debian_chroot[32m)[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mfi[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# set a fancy prompt (non-color, unless we know we (B[0;1m[33m"want"(B[0m[36m color)[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mcase[39m(B[m (B[0;1m[33m"$TERM"[39m(B[m [32min[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5Hxterm-color[32m|[39m(B[m*-256color[32m)[39m(B[m color_prompt[32m=[39m(B[myes[32m;;[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mesac[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# uncomment for a colored prompt, if the terminal has the capability; turned[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# off by default to not distract the user: the focus in a terminal window[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# should be on the output of commands, not on the prompt[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m#force_color_prompt=yes[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mif[39m(B[m [32m[(B[0;1m[35m -n[39m(B[m (B[0;1m[33m"$force_color_prompt"[39m(B[m [32m];[39m(B[m [32mthen[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H[32mif[39m(B[m [32m[(B[0;1m[35m -x[39m(B[m /usr/bin/tput [32m][39m(B[m [32m&&[39m(B[m tput setaf 1 [32m>&[39m(B[m/dev/null[32m;[39m(B[m [32mthen[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;8H[36m[1K # We have color support; assume it's compliant with Ecma-48[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;8H[36m[1K # (ISO/IEC-6429). (Lack of such support is extremely rare, and such[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;8H[36m[1K # a case would tend to support setf rather than setaf.)[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;9Hcolor_prompt[32m=[39m(B[myes[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H[32melse[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;9Hcolor_prompt[32m=[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H[32mfi[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mfi[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mif[39m(B[m [32m[[39m(B[m (B[0;1m[33m"$color_prompt"[39m(B[m [32m=[39m(B[m yes [32m];[39m(B[m [32mthen[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5HPS1[32m=(B[0;1m[33m'${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32melse[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5HPS1[32m=(B[0;1m[33m'${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mfi[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H(B[0;1m[34munset[39m(B[m color_prompt force_color_prompt[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# If this is an xterm set the title to user@host:dir[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mcase[39m(B[m (B[0;1m[33m"$TERM"[39m(B[m [32min[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1Hxterm*[32m|[39m(B[mrxvt*[32m)[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5HPS1[32m=(B[0;1m[33m"\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H[32m;;[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H*[32m)[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H[32m;;[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mesac[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# enable color support of ls and also add handy aliases[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mif[39m(B[m [32m[(B[0;1m[35m -x[39m(B[m /usr/bin/dircolors [32m];[39m(B[m [32mthen[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5Htest(B[0;1m[35m -r[39m(B[m ~/.dircolors [32m&&[39m(B[m [32meval[39m(B[m (B[0;1m[33m"$(dircolors -b ~/.dircolors)"[39m(B[m [32m||[39m(B[m [32meval[39m(B[m (B[0;1m[33m"$(dircolors -b)"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5Halias ls[32m=(B[0;1m[33m'ls --color=auto'[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;4H[36m #alias dir=(B[0;1m[33m'dir --color=auto'[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;4H[36m #alias vdir=(B[0;1m[33m'vdir --color=auto'[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5Halias (B[0;1m[34mgrep(B[0m[32m=(B[0;1m[33m'grep --color=auto'[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5Halias fgrep[32m=(B[0;1m[33m'fgrep --color=auto'[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5Halias egrep[32m=(B[0;1m[33m'egrep --color=auto'[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mfi[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# colored GCC warnings and errors[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m#export GCC_COLORS=(B[0;1m[33m'error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# some more ls aliases[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1Halias ll[32m=(B[0;1m[33m'ls -alF'[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1Halias la[32m=(B[0;1m[33m'ls -A'[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1Halias l[32m=(B[0;1m[33m'ls -CF'[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# Add an (B[0;1m[33m"alert"(B[0m[36m alias for long running commands.  Use like so:[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m#   sleep 10; alert[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1Halias alert[32m=(B[0;1m[33m'notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"[39m(B[m'[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# Alias definitions.[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# You may want to put all your additions into a separate file like[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# ~/.bash_aliases, instead of adding them here directly.[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# See /usr/share/doc/bash-doc/examples in the bash-doc package.[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mif[39m(B[m [32m[(B[0;1m[35m -f[39m(B[m ~/.bash_aliases [32m];[39m(B[m [32mthen[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H. ~/.bash_aliases[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mfi[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# enable programmable completion features (you don't need to enable[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# this, if it's already enabled in /etc/bash.bashrc and /etc/profile[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# sources /etc/bash.bashrc).[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mif[39m(B[m [32m![39m(B[m shopt -oq posix[32m;[39m(B[m [32mthen[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;3H[32mif[39m(B[m [32m[(B[0;1m[35m -f[39m(B[m /usr/share/bash-completion/bash_completion [32m];[39m(B[m [32mthen[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H. /usr/share/bash-completion/bash_completion[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;3H[32melif[39m(B[m [32m[(B[0;1m[35m -f[39m(B[m /etc/bash_completion [32m];[39m(B[m [32mthen[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H. /etc/bash_completion[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;3H[32mfi[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mfi[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H. (B[0;1m[33m"$HOME/.cargo/env"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m#export http_proxy=(B[0;1m[33m"http://proxy-dmz.intel.com:912"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m#export https_proxy=(B[0;1m[33m"http://proxy-dmz.intel.com:912"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m#export ftp_proxy=(B[0;1m[33m"proxy-dmz.intel.com:21"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m#export socks_proxy=(B[0;1m[33m"proxy-dmz.intel.com:1080"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m#export no_proxy=(B[0;1m[33m"intel.com,.intel.com,localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# >>> conda initialize >>>[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# !! Contents within this block are managed by (B[0;1m[33m'conda init'(B[0m[36m !![39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H__conda_setup[32m=(B[0;1m[33m"$('/home/pweier/anaconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mif[39m(B[m [32m[[39m(B[m (B[0;1m[31m$?[39m(B[m [32m-eq[39m(B[m 0 [32m];[39m(B[m [32mthen[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H[32meval[39m(B[m (B[0;1m[33m"$__conda_setup"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32melse[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H[32mif[39m(B[m [32m[(B[0;1m[35m -f[39m(B[m (B[0;1m[33m"/home/pweier/anaconda3/etc/profile.d/conda.sh"[39m(B[m [32m];[39m(B[m [32mthen[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;9H. (B[0;1m[33m"/home/pweier/anaconda3/etc/profile.d/conda.sh"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H[32melse[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;9H[32mexport[39m(B[m PATH[32m=(B[0;1m[33m"/home/pweier/anaconda3/bin:$PATH"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;5H[32mfi[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mfi[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H(B[0;1m[34munset[39m(B[m __conda_setup[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# <<< conda initialize <<<[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# cuda path[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mexport[39m(B[m PATH[32m=(B[0;1m[33m"/usr/local/cuda-11.3/bin:$PATH"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mexport[39m(B[m LD_LIBRARY_PATH[32m=(B[0;1m[33m"/usr/local/cuda-11.3/lib64:$LD_LIBRARY_PATH"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# default compiler[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mexport[39m(B[m CC[32m=[39m(B[mclang-10[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mexport[39m(B[m CXX[32m=[39m(B[mclang++-10[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# cmake path[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mexport[39m(B[m PATH[32m=(B[0;1m[33m"/usr/local/cmake-3.22.3-linux-x86_64/bin:$PATH"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mexport[39m(B[m PATH[32m=(B[0;1m[33m"/usr/local/ispc/bin:$PATH"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mexport[39m(B[m LD_LIBRARY_PATH[32m=(B[0;1m[33m"/usr/local/ispc/lib64:$LD_LIBRARY_PATH"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mexport[39m(B[m OptiX_INSTALL_DIR[32m=(B[0;1m[33m"/usr/local/optix"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# source /usr/local/embree/embree-vars.sh[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# Vulkan SDK[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m#export VULKAN_SDK=(B[0;1m[33m"/usr/local/vulkanSDK/1.3.204.1/"[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[36m# VKS Workload tools[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mexport[39m(B[m PYTHONPATH[32m=[39m(B[m/home/pweier/Documents/libvkr/build/[32m:(B[0;1m[31m${PYTHONPATH}[39m(B[m[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[?12l[?25h[?25l7[2;22r8[22d
+[1;24r[21;1H[32mexport[39m(B[m PATH[32m=(B[0;1m[33m"/home/pweier/Downloads/vulkan_renderer_mig/tools/texture_conversion/build/:$PATH"[39m(B[m[?12l[?25h[?25l[A[?12l[?25h[?25l[19;69H[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[?12l[?25h[?25l[1;162H(B[0;7mModified(B[m[19;42Hnlibvkr/build/[32m:(B[0;1m[31m${PYTHONPATH}[19;43H[39m(B[m[?12

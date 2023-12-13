@@ -1,0 +1,2 @@
+/usr/bin/llvm-ar-9 qc libvkr.a CMakeFiles/vkr.dir/src/vkr.c.o
+/usr/bin/llvm-ranlib-9 libvkr.a
